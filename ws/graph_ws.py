@@ -65,4 +65,4 @@ async def ws_handler(request):
 
 
 # 서버에 라우트 등록
-PromptServer.instance.routes.add_routes(routes)
+PromptServer.instance.app.router.add_routes(routes)

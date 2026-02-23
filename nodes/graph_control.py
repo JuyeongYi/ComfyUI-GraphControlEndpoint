@@ -220,5 +220,5 @@ async def post_load(request):
     return web.json_response({"ok": True, "graph": graph_data})
 
 
-# 서버에 라우트 등록
-PromptServer.instance.routes.add_routes(routes)
+# 서버에 라우트 등록 (app.router에 직접 추가해야 동작함)
+PromptServer.instance.app.router.add_routes(routes)
