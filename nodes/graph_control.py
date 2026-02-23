@@ -3,6 +3,7 @@
 import asyncio
 import json
 import os
+import re
 import sys
 
 import aiohttp
@@ -101,7 +102,7 @@ async def get_node_types(request):
     for name, cls in mappings.items():
         try:
             cat = getattr(cls, "CATEGORY", "")
-            if category_filter and cat != category_filter:
+            if category_filter and not re.search(category_filter, cat):
                 continue
 
             input_types = {}
@@ -117,6 +118,42 @@ async def get_node_types(request):
             }
         except Exception:
             result[name] = {"input": {}, "output": [], "category": ""}
+
+    return web.json_response(result)
+
+
+@routes.get("/comfy/graph/all_nodes")
+async def get_all_nodes(request):
+    """전체 노드 타입 이름 + 설명 + 카테고리를 반환한다. AI 컨텍스트용."""
+    mappings = _get_node_class_mappings()
+    result = {}
+
+    for name, cls in mappings.items():
+        try:
+            description = getattr(cls, "DESCRIPTION", "")
+            if not description:
+                description = (cls.__doc__ or "").strip()
+
+            cat = getattr(cls, "CATEGORY", "")
+            output_types = list(getattr(cls, "RETURN_TYPES", ()))
+
+            input_names = []
+            if hasattr(cls, "INPUT_TYPES"):
+                input_types = cls.INPUT_TYPES()
+                for section in ("required", "optional"):
+                    if section in input_types:
+                        for key, val in input_types[section].items():
+                            type_name = val[0] if isinstance(val, (list, tuple)) else str(val)
+                            input_names.append({"name": key, "type": type_name})
+
+            result[name] = {
+                "description": description,
+                "category": cat,
+                "inputs": input_names,
+                "outputs": output_types,
+            }
+        except Exception:
+            result[name] = {"description": "", "category": "", "inputs": [], "outputs": []}
 
     return web.json_response(result)
 
